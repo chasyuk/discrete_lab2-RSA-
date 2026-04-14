@@ -1,5 +1,9 @@
 import socket
 import threading
+from main import generate_keys, encode_message, decode_message, symmetric_encrypt, symmetric_decrypt
+
+SEPARATOR = "||"
+
 
 class Server:
 
@@ -9,12 +13,15 @@ class Server:
         self.clients = []
         self.username_lookup = {}
         self.s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        self.client_secrets = {}
 
     def start(self):
         self.s.bind((self.host, self.port))
         self.s.listen(100)
 
         # generate keys ...
+        self.e, self.d, self.n = generate_keys()
+        self.secret = "AndriiMuzynchyk123"
 
         while True:
             c, addr = self.s.accept()
@@ -24,30 +31,36 @@ class Server:
             self.username_lookup[c] = username
             self.clients.append(c)
 
-            # send public key to the client 
+            # 1. receive client's public key
+            client_pub = c.recv(1024).decode()
+            client_e, client_n = client_pub.split(SEPARATOR)
+            client_e, client_n = int(client_e), int(client_n)
 
-            # ...
+            # send public key to the client
+            pub_key_msg = f"{self.e}{SEPARATOR}{self.n}"
+            c.send(pub_key_msg.encode())
 
-            # encrypt the secret with the clients public key
+           # encrypt the secret with the clients public key
+            secret_hash, secret_cipher = encode_message(self.secret, client_e, client_n)
+            secret_msg = f"{secret_hash}{SEPARATOR}{secret_cipher}"
 
-            # ...
 
-            # send the encrypted secret to a client 
+            # send the encrypted secret to a client
+            c.send(secret_msg.encode())
+            self.client_secrets[c] = self.secret
 
-            # ...
 
             threading.Thread(target=self.handle_client,args=(c,addr,)).start()
 
     def broadcast(self, msg: str):
-        for client in self.clients: 
+        for client in self.clients:
 
             # encrypt the message
 
-            # ...
+            encrypted = symmetric_encrypt(msg, self.client_secrets[client])
+            client.send(encrypted.encode())
 
-            client.send(msg.encode())
-
-    def handle_client(self, c: socket, addr): 
+    def handle_client(self, c: socket, addr):
         while True:
             msg = c.recv(1024)
 
