@@ -19,7 +19,12 @@ class Client:
             print("[client]: could not connect to server: ", e)
             return
 
+        import time
         self.s.send(self.username.encode())
+
+        # Add a short delay to prevent TCP framing issues (packet coalescing)
+        # where the server receives the username and public key in a single .recv() call
+        time.sleep(0.1)
 
         # create key pairs
 
@@ -49,12 +54,11 @@ class Client:
 
     def read_handler(self):
         while True:
-            message = self.s.recv(1024).decode()
+            raw_message = self.s.recv(1024)
+            message = raw_message.decode()
 
             # decrypt message with the secret key
-
             message = symmetric_decrypt(message, self.secret)
-
             print(message)
 
     def write_handler(self):
@@ -62,7 +66,6 @@ class Client:
             message = input()
 
             # encrypt message with the secret key
-
             message = symmetric_encrypt(message, self.secret)
 
             self.s.send(message.encode())

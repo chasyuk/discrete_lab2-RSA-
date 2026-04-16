@@ -21,7 +21,7 @@ class Server:
 
         # generate keys ...
         self.e, self.d, self.n = generate_keys()
-        self.secret = "AndriiMuzynchyk123"
+        self.secret = "AndriiMuzychyk123"
 
         while True:
             c, addr = self.s.accept()
@@ -31,7 +31,7 @@ class Server:
             self.username_lookup[c] = username
             self.clients.append(c)
 
-            # 1. receive client's public key
+            # receive client's public key
             client_pub = c.recv(1024).decode()
             client_e, client_n = client_pub.split(SEPARATOR)
             client_e, client_n = int(client_e), int(client_n)
@@ -39,6 +39,9 @@ class Server:
             # send public key to the client
             pub_key_msg = f"{self.e}{SEPARATOR}{self.n}"
             c.send(pub_key_msg.encode())
+
+            import time
+            time.sleep(0.1)
 
            # encrypt the secret with the clients public key
             secret_hash, secret_cipher = encode_message(self.secret, client_e, client_n)
@@ -63,10 +66,10 @@ class Server:
     def handle_client(self, c: socket, addr):
         while True:
             msg = c.recv(1024)
-
             for client in self.clients:
                 if client != c:
                     client.send(msg)
+
 
 if __name__ == "__main__":
     s = Server(9001)

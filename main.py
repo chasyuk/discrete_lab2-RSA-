@@ -32,8 +32,10 @@ def reverse_euclidean_algorithm(numerator, denominator):
 
 def generate_keys():
     """Generate an RSA key pair (e, d, n)."""
-    num_1 = 10**100 + 267
-    num_2 = 10**100 + 949
+    # Exponents 25 generate primes large enough (n ~ 10^50) so they can still safely encrypt
+    # messages of length up to ~20 bytes without wrapping around modulo n.
+    num_1 = 10**25 + 13
+    num_2 = 10**25 + 223
     n = num_1 * num_2
     fi = (num_1 - 1) * (num_2 - 1)
     e = 2 ** 16 + 1
@@ -74,8 +76,6 @@ def decode_message(encoded_message, d, n):
     return recovered_bytes.decode('utf-8')
 
 
-# --------------- symmetric helpers (XOR with shared secret) ---------------
-
 def symmetric_encrypt(plaintext, key):
     """XOR-encrypt plaintext using key (repeating key as needed).
     Returns a hex string.
@@ -94,18 +94,3 @@ def symmetric_decrypt(hex_cipher, key):
     cipher_bytes = bytes.fromhex(hex_cipher)
     decrypted = bytes([b ^ key_bytes[i % len(key_bytes)] for i, b in enumerate(cipher_bytes)])
     return decrypted.decode('utf-8')
-
-
-if __name__ == '__main__':
-    e, d, n = generate_keys()
-    msg = 'Hello RSA!'
-    enc = encode_message(msg, e, n)
-    print(f"Encoded: {enc}")
-    dec = decode_message(enc, d, n)
-    print(f"Decoded: {dec}")
-
-    secret = "TestKey123"
-    ct = symmetric_encrypt("Secret message", secret)
-    print(f"Symmetric encrypted: {ct}")
-    pt = symmetric_decrypt(ct, secret)
-    print(f"Symmetric decrypted: {pt}")
